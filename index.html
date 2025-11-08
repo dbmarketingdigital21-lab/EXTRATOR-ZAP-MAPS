@@ -90,7 +90,7 @@
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome da Empresa</th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status do Site</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Website</th>
                                     </tr>
                                 </thead>
                                 <tbody id="results-table-body" class="bg-white divide-y divide-gray-200">
@@ -147,26 +147,26 @@
             
             const model = "gemini-2.5-flash";
             const prompt = `
-                Com base no Google Maps, encontre empresas do setor '${sector}' na cidade de '${city}', estado de '${state}', '${country}'.
+                Gere uma lista de empresas do setor '${sector}' localizadas em '${city}, ${state}, ${country}', com base em dados do Google Maps.
 
-                Para cada empresa, extraia as seguintes informações:
-                - nome: O nome completo da empresa.
-                - telefone: O número de telefone de contato principal. Se não encontrar, deixe em branco.
-                - websiteStatus: Verifique se a empresa possui um site listado no Google Maps. Responda apenas com "Possui Site" ou "Não Possui Site".
+                Para cada empresa encontrada, forneça as seguintes informações em um array JSON:
+                - nome: O nome da empresa.
+                - telefone: O número de telefone principal.
+                - website: O URL do site da empresa. Se não houver site, retorne uma string vazia ou null.
 
-                Retorne os resultados em um formato de array JSON. O JSON deve ser a única coisa na sua resposta. Não adicione nenhum texto de introdução ou conclusão, nem use formatação de markdown como \`\`\`json.
+                Sua resposta deve conter APENAS o array JSON, sem nenhum texto adicional, explicações ou formatação de markdown.
 
-                Exemplo de formato de resposta:
+                Exemplo de formato esperado:
                 [
                   {
                     "nome": "Pizzaria Sabor da Cidade",
                     "telefone": "+55 11 91234-5678",
-                    "websiteStatus": "Possui Site"
+                    "website": "https://www.sabornacidade.com"
                   },
                   {
                     "nome": "Oficina Mecânica Central",
                     "telefone": "+55 11 98765-4321",
-                    "websiteStatus": "Não Possui Site"
+                    "website": null
                   }
                 ]
             `;
@@ -203,8 +203,8 @@
                 const parsedData = JSON.parse(jsonString);
 
                 if (Array.isArray(parsedData)) {
-                    // Filtra itens que não possuem as propriedades essenciais
-                    return parsedData.filter(item => item && typeof item.nome === 'string' && typeof item.websiteStatus === 'string');
+                    // Filtra itens que não possuem a propriedade nome
+                    return parsedData.filter(item => item && typeof item.nome === 'string');
                 } else {
                     throw new Error("O JSON extraído não é um array.");
                 }
@@ -241,7 +241,10 @@
                 resultsCount.textContent = `Resultados Encontrados: ${data.length}`;
                 
                 data.forEach(item => {
-                    const statusClass = item.websiteStatus === 'Não Possui Site' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
+                    const hasWebsite = item.website && item.website.trim() !== '';
+                    const websiteStatusText = hasWebsite ? 'Possui Site' : 'Não Possui Site';
+                    const statusClass = hasWebsite ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800';
+
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-gray-50 transition';
                     row.innerHTML = `
@@ -249,7 +252,7 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.telefone || 'N/A'}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
-                                ${item.websiteStatus || 'N/A'}
+                                ${websiteStatusText}
                             </span>
                         </td>
                     `;
@@ -321,14 +324,14 @@
             const sector = sectorInput.value.trim();
             const country = countryInput.value.trim();
 
-            const headers = ['Nome da Empresa', 'Telefone', 'Status do Site', 'Cidade', 'Setor', 'País'];
+            const headers = ['Nome da Empresa', 'Telefone', 'Website', 'Cidade', 'Setor', 'País'];
             const csvRows = [headers.join(',')];
 
             currentResults.forEach(item => {
                 const values = [
                     `"${(item.nome || '').replace(/"/g, '""')}"`,
                     `"${(item.telefone || '').replace(/"/g, '""')}"`,
-                    `"${(item.websiteStatus || '').replace(/"/g, '""')}"`,
+                    `"${(item.website || '').replace(/"/g, '""')}"`,
                     `"${city.replace(/"/g, '""')}"`,
                     `"${sector.replace(/"/g, '""')}"`,
                     `"${country.replace(/"/g, '""')}"`
