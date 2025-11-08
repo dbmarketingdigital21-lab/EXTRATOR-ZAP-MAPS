@@ -9,6 +9,10 @@
         .hidden {
             display: none !important;
         }
+        fieldset:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
     </style>
     <script type="importmap">
     {
@@ -26,34 +30,46 @@
                 <p class="text-lg text-gray-600 mt-2">Encontre e extraia contatos de empresas diretamente do Google Maps.</p>
             </header>
 
+            <div id="api-key-warning" class="hidden mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded-r-lg">
+                <p class="font-bold">Ação Necessária</p>
+                <p>Para usar esta aplicação, você precisa selecionar uma chave de API do Gemini. A chave é usada para autenticar seus pedidos.</p>
+                <p class="mt-2">O uso da API pode incorrer em custos. Consulte a <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" class="font-semibold underline hover:text-yellow-900">documentação de preços</a> para mais detalhes.</p>
+                <button id="select-api-key-button" class="mt-4 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+                    Selecionar Chave de API
+                </button>
+            </div>
+
+
             <main class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
-                <form id="search-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-                    <div>
-                        <label for="country" class="block text-sm font-medium text-gray-700 mb-1">País</label>
-                        <input type="text" id="country" value="Brasil" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: Brasil"/>
-                    </div>
-                    <div>
-                        <label for="state" class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                        <input type="text" id="state" value="São Paulo" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: São Paulo"/>
-                    </div>
-                    <div>
-                        <label for="city" class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
-                        <input type="text" id="city" value="São Paulo" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: Rio de Janeiro"/>
-                    </div>
-                    <div>
-                        <label for="sector" class="block text-sm font-medium text-gray-700 mb-1">Setor</label>
-                        <input type="text" id="sector" value="restaurante" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: academia, pet shop"/>
-                    </div>
-                    <div class="md:col-span-2 lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <button type="submit" id="search-button" class="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:bg-blue-300 disabled:cursor-not-allowed">
-                            <!-- O conteúdo do botão será alterado via JS -->
-                        </button>
-                         <button type="button" id="clear-button" class="w-full flex items-center justify-center gap-2 bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.664 0l3.181-3.183m-4.991-2.696v4.992h-4.992" /></svg>
-                            Limpar
-                        </button>
-                    </div>
-                </form>
+                <fieldset id="search-fieldset">
+                    <form id="search-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                        <div>
+                            <label for="country" class="block text-sm font-medium text-gray-700 mb-1">País</label>
+                            <input type="text" id="country" value="Brasil" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: Brasil"/>
+                        </div>
+                        <div>
+                            <label for="state" class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                            <input type="text" id="state" value="São Paulo" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: São Paulo"/>
+                        </div>
+                        <div>
+                            <label for="city" class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                            <input type="text" id="city" value="São Paulo" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: Rio de Janeiro"/>
+                        </div>
+                        <div>
+                            <label for="sector" class="block text-sm font-medium text-gray-700 mb-1">Setor</label>
+                            <input type="text" id="sector" value="restaurante" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: academia, pet shop"/>
+                        </div>
+                        <div class="md:col-span-2 lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <button type="submit" id="search-button" class="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:bg-blue-300 disabled:cursor-not-allowed">
+                                <!-- O conteúdo do botão será alterado via JS -->
+                            </button>
+                             <button type="button" id="clear-button" class="w-full flex items-center justify-center gap-2 bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition">
+                                <svg xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.664 0l3.181-3.183m-4.991-2.696v4.992h-4.992" /></svg>
+                                Limpar
+                            </button>
+                        </div>
+                    </form>
+                </fieldset>
 
                 <div class="mt-8">
                     <div id="loading-indicator" class="text-center py-10 hidden">
@@ -104,9 +120,11 @@
         // --- STATE MANAGEMENT & DOM REFERENCES ---
         let currentResults = [];
         let isLoading = false;
+        let hasApiKey = false;
         
         const searchForm = document.getElementById('search-form');
         const searchButton = document.getElementById('search-button');
+        const searchFieldset = document.getElementById('search-fieldset');
         const clearButton = document.getElementById('clear-button');
         const loadingIndicator = document.getElementById('loading-indicator');
         const errorMessage = document.getElementById('error-message');
@@ -114,6 +132,8 @@
         const resultsCount = document.getElementById('results-count');
         const resultsTableBody = document.getElementById('results-table-body');
         const exportButton = document.getElementById('export-button');
+        const apiKeyWarning = document.getElementById('api-key-warning');
+        const selectApiKeyButton = document.getElementById('select-api-key-button');
 
         const countryInput = document.getElementById('country');
         const stateInput = document.getElementById('state');
@@ -126,6 +146,7 @@
 
         // --- GEMINI API SERVICE ---
         const fetchBusinesses = async (country, state, city, sector) => {
+            // Re-create the AI instance for each call to ensure the latest API key is used.
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             
             const locationQuery = `em '${city}, ${state}, ${country}'`;
@@ -169,18 +190,35 @@
             } catch (error) {
                 console.error("Erro ao chamar a API Gemini:", error);
                 const errorMsg = error.message.toLowerCase();
-                if (errorMsg.includes('api key')) {
-                    throw new Error("Falha na autenticação com a API. Verifique se a chave de API está configurada corretamente no ambiente.");
+                 if (errorMsg.includes('requested entity was not found')) {
+                    // This error can happen if the key is invalid or removed.
+                    // Reset the key state and prompt the user to select one again.
+                    hasApiKey = false;
+                    checkApiKey();
+                    throw new Error("A chave de API selecionada não foi encontrada ou é inválida. Por favor, selecione uma chave válida.");
                 } else if (error instanceof SyntaxError) {
                      throw new Error("A resposta da API não retornou um JSON válido. Tente refinar sua busca.");
                 }
                 throw new Error("Falha ao buscar empresas. Verifique os filtros e sua conexão.");
             }
         };
+        
+        // --- API KEY MANAGEMENT ---
+        const checkApiKey = async () => {
+             if (typeof window.aistudio === 'undefined') {
+                 showError("O ambiente necessário para a seleção de chave de API não foi carregado.");
+                 searchFieldset.disabled = true;
+                 return;
+            }
+            hasApiKey = await window.aistudio.hasSelectedApiKey();
+            apiKeyWarning.classList.toggle('hidden', hasApiKey);
+            searchFieldset.disabled = !hasApiKey;
+            updateUI();
+        };
 
         // --- UI UPDATE FUNCTIONS ---
         const updateUI = () => {
-            searchButton.disabled = isLoading;
+            searchButton.disabled = isLoading || !hasApiKey;
             if (isLoading) {
                 searchButton.innerHTML = loadingSpinnerIcon;
                 loadingIndicator.classList.remove('hidden');
@@ -244,6 +282,11 @@
         // --- EVENT HANDLERS ---
         const handleSearch = async (e) => {
             e.preventDefault();
+            
+            if (!hasApiKey) {
+                showError('Por favor, selecione uma chave de API antes de buscar.');
+                return;
+            }
 
             const country = countryInput.value.trim();
             const state = stateInput.value.trim();
@@ -314,13 +357,20 @@
             document.body.removeChild(link);
         };
         
+        const handleSelectApiKey = async () => {
+            await window.aistudio.openSelectKey();
+            // After the dialog closes, assume a key was selected and re-check.
+            await checkApiKey();
+        };
+        
         // --- INITIALIZATION ---
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             searchForm.addEventListener('submit', handleSearch);
             clearButton.addEventListener('click', handleClear);
             exportButton.addEventListener('click', handleExport);
+            selectApiKeyButton.addEventListener('click', handleSelectApiKey);
             
-            updateUI(); // Set initial button state
+            await checkApiKey();
         });
     </script>
 </body>
