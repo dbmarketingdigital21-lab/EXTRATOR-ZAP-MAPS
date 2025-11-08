@@ -64,7 +64,7 @@
                                 <!-- O conteúdo do botão será alterado via JS -->
                             </button>
                              <button type="button" id="clear-button" class="w-full flex items-center justify-center gap-2 bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition">
-                                <svg xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.664 0l3.181-3.183m-4.991-2.696v4.992h-4.992" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.664 0l3.181-3.183m-4.991-2.696v4.992h-4.992" /></svg>
                                 Limpar
                             </button>
                         </div>
@@ -146,8 +146,20 @@
 
         // --- GEMINI API SERVICE ---
         const fetchBusinesses = async (country, state, city, sector) => {
-            // Re-create the AI instance for each call to ensure the latest API key is used.
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            let ai;
+            try {
+                // Defensive check to ensure the API key is available in the environment.
+                if (typeof process === 'undefined' || !process.env || !process.env.API_KEY) {
+                    throw new ReferenceError("API key environment not ready");
+                }
+                // Re-create the AI instance for each call to use the latest API key.
+                ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            } catch (e) {
+                // This catches "process is not defined" or our custom error.
+                hasApiKey = false;
+                checkApiKey(); // Trigger UI to ask for key selection.
+                throw new Error("A chave de API não está configurada. Por favor, selecione uma chave de API válida.");
+            }
             
             const locationQuery = `em '${city}, ${state}, ${country}'`;
             const model = "gemini-2.5-flash";
@@ -170,7 +182,6 @@
                   }
                 ]
             `;
-
             const config = { tools: [{ googleMaps: {} }] };
 
             try {
@@ -179,27 +190,30 @@
                 });
 
                 const text = response.text.trim();
-                const arrayMatch = text.match(/(\[[\s\S]*\])/);
-                if (!arrayMatch || !arrayMatch[1]) {
-                    console.error("Resposta da API não contém um array JSON:", text);
-                    throw new Error("Não foi possível encontrar dados de empresas. A resposta da API pode ter mudado de formato.");
-                }
+                const startIndex = text.indexOf('[');
+                const endIndex = text.lastIndexOf(']');
 
-                const parsedData = JSON.parse(arrayMatch[1]);
+                if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+                    console.error("Resposta da API não contém um array JSON:", text);
+                    throw new Error("Não foi possível extrair dados da resposta. A API pode ter retornado um formato inesperado.");
+                }
+                
+                const jsonString = text.substring(startIndex, endIndex + 1);
+                const parsedData = JSON.parse(jsonString);
                 return Array.isArray(parsedData) ? parsedData.filter(item => item && item.nome) : [];
+
             } catch (error) {
                 console.error("Erro ao chamar a API Gemini:", error);
-                const errorMsg = error.message.toLowerCase();
+                const errorMsg = error.message ? error.message.toLowerCase() : '';
                  if (errorMsg.includes('requested entity was not found')) {
                     // This error can happen if the key is invalid or removed.
-                    // Reset the key state and prompt the user to select one again.
                     hasApiKey = false;
                     checkApiKey();
                     throw new Error("A chave de API selecionada não foi encontrada ou é inválida. Por favor, selecione uma chave válida.");
                 } else if (error instanceof SyntaxError) {
                      throw new Error("A resposta da API não retornou um JSON válido. Tente refinar sua busca.");
                 }
-                throw new Error("Falha ao buscar empresas. Verifique os filtros e sua conexão.");
+                throw new Error("Falha ao buscar empresas. Verifique sua conexão ou a validade da sua chave de API.");
             }
         };
         
