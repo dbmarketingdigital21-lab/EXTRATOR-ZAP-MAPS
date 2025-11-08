@@ -1,25 +1,359 @@
 
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF--8" />
+<head>
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ExtratorZap Maps</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/heroicons/2.1.3/24/outline/heroicons.min.css" integrity="sha512-4s1wGgKqBthE99a618B2I332tmjdG2s2N2pLdJpfrsAvhQ53uPOa59SgoW4hGiPpmXwpyw2s5M4/hIuQyGvSrg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0"
-  }
-}
-</script>
+    <style>
+        /* Adiciona um estilo para esconder elementos de forma mais robusta */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0"
+      }
+    }
+    </script>
 </head>
-  <body class="bg-gray-100">
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+<body class="bg-gray-100">
+    <div class="min-h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-6 lg:p-8 font-sans">
+        <div class="w-full max-w-5xl mx-auto">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl sm:text-5xl font-bold text-blue-600">ExtratorZap Maps</h1>
+                <p class="text-lg text-gray-600 mt-2">Encontre e extraia contatos de empresas diretamente do Google Maps.</p>
+            </header>
+
+            <main class="bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                <form id="search-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                    <div>
+                        <label for="country" class="block text-sm font-medium text-gray-700 mb-1">País</label>
+                        <input type="text" id="country" value="Brasil" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: Brasil"/>
+                    </div>
+                    <div>
+                        <label for="state" class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                        <input type="text" id="state" value="São Paulo" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: São Paulo"/>
+                    </div>
+                    <div>
+                        <label for="city" class="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                        <input type="text" id="city" value="São Paulo" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: Rio de Janeiro"/>
+                    </div>
+                    <div>
+                        <label for="sector" class="block text-sm font-medium text-gray-700 mb-1">Setor</label>
+                        <input type="text" id="sector" value="restaurante" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition" placeholder="Ex: academia, pet shop"/>
+                    </div>
+                    <div class="md:col-span-2 lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button type="submit" id="search-button" class="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition disabled:bg-blue-300 disabled:cursor-not-allowed">
+                            <!-- O conteúdo do botão será alterado via JS -->
+                        </button>
+                         <button type="button" id="clear-button" class="w-full flex items-center justify-center gap-2 bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 11.664 0l3.181-3.183m-4.991-2.696v4.992h-4.992" />
+                            </svg>
+                            Limpar Filtros
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-8">
+                    <div id="loading-indicator" class="text-center py-10 hidden">
+                        <div class="flex justify-center items-center gap-3">
+                            <svg class="animate-spin text-blue-600 w-8 h-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="text-gray-600 text-lg">Buscando empresas, aguarde...</p>
+                        </div>
+                    </div>
+                    
+                    <div id="error-message" class="text-center py-10 bg-red-50 text-red-700 rounded-lg hidden">
+                        <p></p>
+                    </div>
+
+                    <div id="results-container" class="hidden">
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                            <h2 id="results-count" class="text-2xl font-semibold text-gray-800"></h2>
+                            <button id="export-button" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                                Exportar para CSV
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto rounded-lg border border-gray-200 max-h-[60vh]">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome da Empresa</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status do Site</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="results-table-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- Os resultados serão inseridos aqui via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { GoogleGenAI } from "@google/genai";
+
+        // --- STATE MANAGEMENT & DOM REFERENCES ---
+        let currentResults = [];
+        let isLoading = false;
+        
+        const searchForm = document.getElementById('search-form');
+        const searchButton = document.getElementById('search-button');
+        const clearButton = document.getElementById('clear-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+        const resultsContainer = document.getElementById('results-container');
+        const resultsCount = document.getElementById('results-count');
+        const resultsTableBody = document.getElementById('results-table-body');
+        const exportButton = document.getElementById('export-button');
+
+        const countryInput = document.getElementById('country');
+        const stateInput = document.getElementById('state');
+        const cityInput = document.getElementById('city');
+        const sectorInput = document.getElementById('sector');
+        
+        // --- ICONS ---
+        const searchIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg> Buscar Empresas`;
+        const loadingSpinnerIcon = `<svg class="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Buscando...`;
+
+        // --- GEMINI API SERVICE ---
+        let ai;
+        try {
+            ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        } catch (error) {
+            console.error("Erro ao inicializar a API Gemini:", error);
+            showError("Chave de API inválida ou não configurada. A busca não funcionará.");
+        }
+
+
+        const fetchBusinesses = async (country, state, city, sector) => {
+            if (!ai) {
+                 throw new Error("A API Gemini não foi inicializada corretamente.");
+            }
+            
+            const model = "gemini-2.5-flash";
+            const prompt = `
+                Com base no Google Maps, encontre empresas do setor '${sector}' na cidade de '${city}', estado de '${state}', '${country}'.
+
+                Para cada empresa, extraia as seguintes informações:
+                - nome: O nome completo da empresa.
+                - telefone: O número de telefone de contato principal. Se não encontrar, deixe em branco.
+                - websiteStatus: Verifique se a empresa possui um site listado no Google Maps. Responda apenas com "Possui Site" ou "Não Possui Site".
+
+                Retorne os resultados em um formato de array JSON. O JSON deve ser a única coisa na sua resposta. Não adicione nenhum texto de introdução ou conclusão, nem use formatação de markdown como \`\`\`json.
+
+                Exemplo de formato de resposta:
+                [
+                  {
+                    "nome": "Pizzaria Sabor da Cidade",
+                    "telefone": "+55 11 91234-5678",
+                    "websiteStatus": "Possui Site"
+                  },
+                  {
+                    "nome": "Oficina Mecânica Central",
+                    "telefone": "+55 11 98765-4321",
+                    "websiteStatus": "Não Possui Site"
+                  }
+                ]
+            `;
+
+            try {
+                const response = await ai.models.generateContent({
+                    model: model,
+                    contents: prompt,
+                    config: {
+                        tools: [{ googleMaps: {} }],
+                    },
+                });
+
+                const text = response.text.trim();
+                let jsonString = '';
+                
+                // Tenta extrair o JSON de dentro de um bloco de código markdown ```json ... ``` ou ``` ... ```
+                const markdownMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                if (markdownMatch && markdownMatch[1]) {
+                    jsonString = markdownMatch[1];
+                } else {
+                    // Se não encontrou em markdown, procura o primeiro array [...] na string
+                    const arrayMatch = text.match(/(\[[\s\S]*\])/);
+                    if (arrayMatch && arrayMatch[1]) {
+                        jsonString = arrayMatch[1];
+                    }
+                }
+                
+                if (!jsonString) {
+                    console.error("Resposta da API não contém um array JSON:", text);
+                    throw new Error("Não foi possível encontrar dados de empresas. A resposta da API pode ter mudado de formato ou não contém um JSON válido.");
+                }
+
+                const parsedData = JSON.parse(jsonString);
+
+                if (Array.isArray(parsedData)) {
+                    // Filtra itens que não possuem as propriedades essenciais
+                    return parsedData.filter(item => item && typeof item.nome === 'string' && typeof item.websiteStatus === 'string');
+                } else {
+                    throw new Error("O JSON extraído não é um array.");
+                }
+            } catch (error) {
+                console.error("Erro ao chamar a API Gemini ou ao processar a resposta:", error);
+                if (error.message.includes('API key not valid')) {
+                    throw new Error("Chave de API inválida. Verifique sua configuração.");
+                } else if (error instanceof SyntaxError) { // JSON.parse error
+                     throw new Error("A resposta da API não retornou um JSON válido.");
+                }
+                throw new Error("Falha ao buscar empresas. Verifique sua chave de API e a conexão.");
+            }
+        };
+
+        // --- UI UPDATE FUNCTIONS ---
+        const updateUI = () => {
+            searchButton.disabled = isLoading;
+            if (isLoading) {
+                searchButton.innerHTML = loadingSpinnerIcon;
+                loadingIndicator.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+                resultsContainer.classList.add('hidden');
+            } else {
+                searchButton.innerHTML = searchIcon;
+                loadingIndicator.classList.add('hidden');
+            }
+        };
+
+        const renderResults = (data) => {
+            resultsTableBody.innerHTML = ''; // Limpa a tabela
+            if (data.length > 0) {
+                resultsContainer.classList.remove('hidden');
+                errorMessage.classList.add('hidden');
+                resultsCount.textContent = `Resultados Encontrados: ${data.length}`;
+                
+                data.forEach(item => {
+                    const statusClass = item.websiteStatus === 'Não Possui Site' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50 transition';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.nome || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.telefone || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                                ${item.websiteStatus || 'N/A'}
+                            </span>
+                        </td>
+                    `;
+                    resultsTableBody.appendChild(row);
+                });
+            }
+        };
+        
+        const showError = (message) => {
+            errorMessage.querySelector('p').textContent = message;
+            errorMessage.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+        };
+        
+        const resetUI = () => {
+            errorMessage.classList.add('hidden');
+            resultsContainer.classList.add('hidden');
+            resultsTableBody.innerHTML = '';
+            currentResults = [];
+        };
+
+        // --- EVENT HANDLERS ---
+        const handleSearch = async (e) => {
+            e.preventDefault();
+            const country = countryInput.value.trim();
+            const state = stateInput.value.trim();
+            const city = cityInput.value.trim();
+            const sector = sectorInput.value.trim();
+
+            if (!country || !state || !city || !sector) {
+                showError('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            isLoading = true;
+            resetUI();
+            updateUI();
+
+            try {
+                const data = await fetchBusinesses(country, state, city, sector);
+                currentResults = data;
+                renderResults(data);
+                if (data.length === 0) {
+                    showError('Nenhuma empresa encontrada com os critérios fornecidos.');
+                }
+            } catch (err) {
+                showError(err.message || 'Ocorreu um erro desconhecido.');
+            } finally {
+                isLoading = false;
+                updateUI();
+            }
+        };
+
+        const handleClear = () => {
+            countryInput.value = 'Brasil';
+            stateInput.value = 'São Paulo';
+            cityInput.value = 'São Paulo';
+            sectorInput.value = 'restaurante';
+            resetUI();
+        };
+
+        const handleExport = () => {
+            if (currentResults.length === 0) {
+                alert('Não há dados para exportar.');
+                return;
+            }
+            
+            const city = cityInput.value.trim();
+            const sector = sectorInput.value.trim();
+            const country = countryInput.value.trim();
+
+            const headers = ['Nome da Empresa', 'Telefone', 'Status do Site', 'Cidade', 'Setor', 'País'];
+            const csvRows = [headers.join(',')];
+
+            currentResults.forEach(item => {
+                const values = [
+                    `"${(item.nome || '').replace(/"/g, '""')}"`,
+                    `"${(item.telefone || '').replace(/"/g, '""')}"`,
+                    `"${(item.websiteStatus || '').replace(/"/g, '""')}"`,
+                    `"${city.replace(/"/g, '""')}"`,
+                    `"${sector.replace(/"/g, '""')}"`,
+                    `"${country.replace(/"/g, '""')}"`
+                ];
+                csvRows.push(values.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `extratorzap_${city}_${sector}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            searchForm.addEventListener('submit', handleSearch);
+            clearButton.addEventListener('click', handleClear);
+            exportButton.addEventListener('click', handleExport);
+            updateUI(); // Set initial button state
+        });
+    </script>
+</body>
 </html>
