@@ -1,0 +1,5 @@
+{
+  "name": "ExtratorZap Maps",
+  "description": "Uma aplicação web para buscar empresas no Google Maps e extrair seus nomes e números de WhatsApp, com a funcionalidade de exportar os dados para um arquivo CSV.",
+  "requestFramePermissions": []
+}
